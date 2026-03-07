@@ -1,0 +1,37 @@
+services:
+  api:
+    build: .
+    container_name: tasklist-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://tasklist:tasklist@postgres:5432/tasklist
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tasklist-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tasklist
+      POSTGRES_USER: tasklist
+      POSTGRES_PASSWORD: tasklist
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasklist -d tasklist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
