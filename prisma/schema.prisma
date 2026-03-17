@@ -13,6 +13,7 @@ model User {
   name      String
   role      Role     @default(USER)
   items     Item[]
+  tags      Tag[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -27,12 +28,38 @@ model Item {
   priority    Priority @default(MEDIUM)
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTags    ItemTag[]
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([completed])
   @@map("items")
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String
+  color     String?
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTags  ItemTag[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("tags")
+}
+
+model ItemTag {
+  itemId String @map("item_id")
+  tagId  String @map("tag_id")
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+  @@index([tagId])
+  @@map("item_tags")
 }
 
 enum Role {

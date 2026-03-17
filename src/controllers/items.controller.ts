@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { ItemsService } from '../services/items.service';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { BadRequestError } from '../types';
 
 const CreateItemSchema = z.object({
   title: z.string().min(1).max(200),
@@ -14,6 +15,7 @@ const UpdateItemSchema = z.object({
   description: z.string().max(1000).optional(),
   completed: z.boolean().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  tagIds: z.array(z.string()).max(5, 'Max 5 tags per item').optional(),
 });
 
 export class ItemsController {
@@ -26,11 +28,25 @@ export class ItemsController {
       ? req.query.completed === 'true'
       : undefined;
 
+    // Tag filter params
+    const tagsParam = req.query.tags as string | undefined;
+    const tagIds = tagsParam
+      ? tagsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+    const tagModeParam = req.query.tagMode as string | undefined;
+    if (tagModeParam !== undefined && tagModeParam !== 'and' && tagModeParam !== 'or') {
+      res.status(400).json({ error: 'Validation failed', details: { tagMode: ['Must be "and" or "or"'] } });
+      return;
+    }
+    const tagMode = (tagModeParam as 'and' | 'or') || 'or';
+
     const result = await this.itemsService.listByUser(
       req.userId!,
       page,
       limit,
       completed,
+      tagIds?.length ? tagIds : undefined,
+      tagMode,
     );
     res.json(result);
   };
@@ -57,7 +73,9 @@ export class ItemsController {
       const item = await this.itemsService.update(req.params.id, req.userId!, parsed.data);
       res.json(item);
     } catch (err: any) {
-      if (err.status === 404) {
+      if (err instanceof BadRequestError) {
+        res.status(400).json({ error: err.message });
+      } else if (err.status === 404) {
         res.status(404).json({ error: err.message });
       } else {
         throw err;

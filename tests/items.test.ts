@@ -1,16 +1,20 @@
 import { ItemsService } from '../src/services/items.service';
 import { ItemsRepository } from '../src/repositories/items.repository';
+import { TagsRepository } from '../src/repositories/tags.repository';
 import { NotFoundError } from '../src/services/users.service';
 
 jest.mock('../src/repositories/items.repository');
+jest.mock('../src/repositories/tags.repository');
 
 describe('ItemsService', () => {
   let service: ItemsService;
   let mockRepo: jest.Mocked<ItemsRepository>;
+  let mockTagsRepo: jest.Mocked<TagsRepository>;
 
   beforeEach(() => {
     mockRepo = new ItemsRepository(null as any) as jest.Mocked<ItemsRepository>;
-    service = new ItemsService(mockRepo);
+    mockTagsRepo = new TagsRepository(null as any) as jest.Mocked<TagsRepository>;
+    service = new ItemsService(mockRepo, mockTagsRepo);
   });
 
   describe('listByUser', () => {
